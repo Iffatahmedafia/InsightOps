@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Application {
+  id           String         @id @default(cuid())
+  name         String
+  environment  String         @default("production")
+  owner        String?
+  healthUrl    String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  healthChecks HealthCheck[]
+  incidents    Incident[]
+  logs         LogEntry[]
+  metrics      MetricSample[]
+
+  @@unique([name, environment])
+  @@index([environment])
+}
+
+model LogEntry {
+  id            String      @id @default(cuid())
+  applicationId String
+  level         String
+  message       String
+  traceId       String?
+  service       String?
+  metadata      Json?
+  timestamp     DateTime
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, timestamp])
+  @@index([traceId])
+}
+
+model MetricSample {
+  id            String      @id @default(cuid())
+  applicationId String
+  route         String
+  method        String
+  statusCode    Int
+  latencyMs     Float
+  traceId       String?
+  timestamp     DateTime
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, timestamp])
+  @@index([traceId])
+}
+
+model Incident {
+  id            String      @id @default(cuid())
+  applicationId String
+  type          String
+  severity      String      @default("warning")
+  status        String      @default("open")
+  title         String
+  rootCauseHint String?
+  evidence      Json?
+  openedAt      DateTime    @default(now())
+  resolvedAt    DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, status])
+  @@index([type, status])
+}
+
+model HealthCheck {
+  id             String      @id @default(cuid())
+  applicationId  String
+  status         String
+  statusCode     Int?
+  responseTimeMs Int
+  checkedAt      DateTime
+  errorMessage   String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  application    Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, checkedAt])
+  @@index([status])
+}
