@@ -18,6 +18,7 @@ async function request(path, options = {}) {
 }
 
 export const getApplications = () => request("/api/applications");
+export const getApplication = (id) => request(`/api/applications/${id}`);
 export const getMetricsSummary = () => request("/api/metrics/summary");
 export const getIncidents = () => request("/api/incidents");
 export const getHealthChecks = () => request("/api/health-checks");

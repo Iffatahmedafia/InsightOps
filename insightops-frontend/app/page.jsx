@@ -128,12 +128,13 @@ export default function DashboardPage() {
 
   async function handleCreateApplication(payload) {
     try {
-      await createApplication(payload);
-      setShowAddApplication(false);
+      const result = await createApplication(payload);
       await loadDashboard();
+      return result;
     } catch (requestError) {
       console.error(requestError);
       setError("Application could not be created. Check the form values and backend connection.");
+      throw requestError;
     }
   }
 
@@ -154,11 +155,11 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-12">
-        <div className="xl:col-span-5">
+        <div className="xl:col-span-5" id="applications">
           <ApplicationsPanel applications={applications} summary={summary} />
         </div>
 
-        <div className="xl:col-span-7">
+        <div className="xl:col-span-7" id="incidents">
           <IncidentsPanel incidents={incidents} onResolved={loadDashboard} />
         </div>
 

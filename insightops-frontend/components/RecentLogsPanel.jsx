@@ -18,7 +18,8 @@ export function RecentLogsPanel({ logs }) {
 
       <div className="scroll-panel divide-y divide-slate-100 dark:divide-white/10">
         {logs.slice(0, 20).map((log) => {
-          const routeOrService = log.metadata?.route || log.route || log.service || "No route";
+          const routeOrService = log.route || log.metadata?.route || log.service || "No route";
+          const methodRoute = log.method ? `${log.method} ${routeOrService}` : routeOrService;
 
           return (
             <article className="grid gap-3 px-5 py-4 md:grid-cols-[auto_1fr_auto]" key={log.id}>
@@ -37,7 +38,7 @@ export function RecentLogsPanel({ logs }) {
 
                 <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
                   <span>{log.application?.name || "Unknown app"}</span>
-                  <span>{routeOrService}</span>
+                  <span>{methodRoute}</span>
                 </div>
               </div>
 

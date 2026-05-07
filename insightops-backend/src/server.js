@@ -21,18 +21,35 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 const port = process.env.PORT || 4000;
-const clientOrigin = process.env.CLIENT_ORIGIN || "http://localhost:5173";
+const allowedOrigins = getAllowedOrigins();
+
+function getAllowedOrigins() {
+  const configuredOrigins = process.env.CLIENT_ORIGINS || process.env.CLIENT_ORIGIN || "http://localhost:3000";
+
+  return configuredOrigins
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
+function corsOrigin(origin, callback) {
+  if (!origin || allowedOrigins.includes(origin)) {
+    return callback(null, true);
+  }
+
+  return callback(new Error(`Origin ${origin} is not allowed by CORS`));
+}
 
 const io = new Server(server, {
   cors: {
-    origin: clientOrigin,
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
   },
 });
 
 app.set("io", io);
 app.use(helmet());
-app.use(cors({ origin: clientOrigin }));
+app.use(cors({ origin: corsOrigin }));
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
 
@@ -42,7 +59,7 @@ app.use("/api/health-checks", healthCheckRoutes);
 app.use("/api/ingest", ingestRoutes);
 app.use("/api/incidents", incidentRoutes);
 app.use("/api/metrics", metricsRoutes);
-app.use("/api/logs", logRoutes)
+app.use("/api/logs", logRoutes);
 app.use(errorHandler);
 
 io.on("connection", (socket) => {

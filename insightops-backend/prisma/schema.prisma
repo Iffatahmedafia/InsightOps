@@ -13,6 +13,7 @@ model Application {
   environment  String         @default("production")
   owner        String?
   healthUrl    String?
+  apiKeyHash   String?        @unique
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   healthChecks HealthCheck[]
@@ -31,6 +32,8 @@ model LogEntry {
   message       String
   traceId       String?
   service       String?
+  route         String?
+  method        String?
   metadata      Json?
   timestamp     DateTime
   createdAt     DateTime    @default(now())
@@ -39,6 +42,7 @@ model LogEntry {
 
   @@index([applicationId, timestamp])
   @@index([traceId])
+  @@index([route])
 }
 
 model MetricSample {
@@ -62,6 +66,8 @@ model Incident {
   id            String      @id @default(cuid())
   applicationId String
   type          String
+  route         String?
+  method        String?
   severity      String      @default("warning")
   status        String      @default("open")
   title         String
@@ -74,6 +80,7 @@ model Incident {
   application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
   @@index([applicationId, status])
+  @@index([applicationId, route, method])
   @@index([type, status])
 }
 

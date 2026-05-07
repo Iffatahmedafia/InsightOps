@@ -10,6 +10,7 @@ export function AddApplicationModal({ onClose, onSubmit }) {
     owner: "",
     healthUrl: "",
   });
+  const [createdApiKey, setCreatedApiKey] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   function updateField(field, value) {
@@ -21,12 +22,14 @@ export function AddApplicationModal({ onClose, onSubmit }) {
     setSubmitting(true);
 
     try {
-      await onSubmit({
+      const result = await onSubmit({
         name: form.name.trim(),
         environment: form.environment.trim() || "production",
         owner: form.owner.trim() || undefined,
         healthUrl: form.healthUrl.trim() || undefined,
       });
+
+      setCreatedApiKey(result?.apiKey || "");
     } finally {
       setSubmitting(false);
     }
@@ -54,6 +57,20 @@ export function AddApplicationModal({ onClose, onSubmit }) {
         </header>
 
         <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
+          {createdApiKey && (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-500/20 dark:bg-emerald-500/10">
+              <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">
+                API key created
+              </p>
+              <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-300">
+                Store this now. InsightOps only shows the raw key once.
+              </p>
+              <code className="mt-3 block break-all rounded-lg bg-white px-3 py-2 text-xs text-slate-800 dark:bg-neutral-950 dark:text-slate-100">
+                {createdApiKey}
+              </code>
+            </div>
+          )}
+
           <label className="block">
             <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Name</span>
             <input
@@ -107,7 +124,7 @@ export function AddApplicationModal({ onClose, onSubmit }) {
 
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || Boolean(createdApiKey)}
               className="h-10 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {submitting ? "Creating" : "Create Application"}

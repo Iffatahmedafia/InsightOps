@@ -1,4 +1,5 @@
 import "./globals.css";
+import { AppLayout } from "../components/AppLayout";
 
 export const metadata = {
   title: "InsightOps",
@@ -8,7 +9,9 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>{children}</body>
+      <body>
+        <AppLayout>{children}</AppLayout>
+      </body>
     </html>
   );
 }

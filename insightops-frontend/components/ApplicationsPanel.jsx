@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Globe2 } from "lucide-react";
 
 export function ApplicationsPanel({ applications, summary }) {
@@ -22,7 +23,11 @@ export function ApplicationsPanel({ applications, summary }) {
           const appSummary = getSummary(app.id);
 
           return (
-            <article className="flex items-center justify-between gap-4 px-5 py-4" key={app.id}>
+            <Link
+              className="flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-slate-50 dark:hover:bg-white/5"
+              href={`/applications/${app.id}`}
+              key={app.id}
+            >
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <strong className="truncate text-sm font-semibold text-slate-950 dark:text-white">{app.name}</strong>
@@ -46,7 +51,7 @@ export function ApplicationsPanel({ applications, summary }) {
                   <span className="text-slate-500 dark:text-slate-400">errors</span>
                 </div>
               </div>
-            </article>
+            </Link>
           );
         })}
 

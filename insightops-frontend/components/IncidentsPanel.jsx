@@ -37,7 +37,7 @@ export function IncidentsPanel({ incidents, onResolved }) {
               </div>
               <strong className="block text-sm font-semibold text-slate-950 dark:text-white">{incident.title}</strong>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                {incident.application?.name || "Unknown app"} · {incident.rootCauseHint || "No hint available"}
+                {incident.application?.name || "Unknown app"} - {incident.rootCauseHint || "No hint available"}
               </p>
             </div>
 

@@ -3,25 +3,23 @@ const { z } = require("zod");
 
 const { validate } = require("../middleware/validate");
 const { prisma } = require("../config/prisma");
+const { requireApplicationApiKey } = require("../middleware/requireApplicationApiKey");
 const { evaluateIncidentSignals } = require("../services/incidentDetector");
 
 const router = express.Router();
 
-const applicationSchema = z.object({
-  applicationName: z.string().min(1),
-  environment: z.string().min(1).default("production"),
-});
-
-const logSchema = applicationSchema.extend({
+const logSchema = z.object({
   level: z.enum(["debug", "info", "warn", "error", "fatal"]),
   message: z.string().min(1),
   service: z.string().optional(),
+  route: z.string().optional(),
+  method: z.string().optional(),
   traceId: z.string().optional(),
   metadata: z.record(z.unknown()).optional(),
   timestamp: z.coerce.date().default(() => new Date()),
 });
 
-const metricSchema = applicationSchema.extend({
+const metricSchema = z.object({
   route: z.string().min(1),
   method: z.string().min(1),
   statusCode: z.number().int().min(100).max(599),
@@ -30,31 +28,17 @@ const metricSchema = applicationSchema.extend({
   timestamp: z.coerce.date().default(() => new Date()),
 });
 
-async function findOrCreateApplication({ applicationName, environment }) {
-  return prisma.application.upsert({
-    where: {
-      name_environment: {
-        name: applicationName,
-        environment,
-      },
-    },
-    update: {},
-    create: {
-      name: applicationName,
-      environment,
-    },
-  });
-}
-
-router.post("/logs", validate(logSchema), async (req, res, next) => {
+router.post("/logs", requireApplicationApiKey, validate(logSchema), async (req, res, next) => {
   try {
-    const application = await findOrCreateApplication(req.body);
+    const application = req.application;
     const log = await prisma.logEntry.create({
       data: {
         applicationId: application.id,
         level: req.body.level,
         message: req.body.message,
         service: req.body.service,
+        route: req.body.route,
+        method: req.body.method?.toUpperCase(),
         traceId: req.body.traceId,
         metadata: req.body.metadata,
         timestamp: req.body.timestamp,
@@ -69,9 +53,9 @@ router.post("/logs", validate(logSchema), async (req, res, next) => {
   }
 });
 
-router.post("/metrics", validate(metricSchema), async (req, res, next) => {
+router.post("/metrics", requireApplicationApiKey, validate(metricSchema), async (req, res, next) => {
   try {
-    const application = await findOrCreateApplication(req.body);
+    const application = req.application;
     const metric = await prisma.metricSample.create({
       data: {
         applicationId: application.id,

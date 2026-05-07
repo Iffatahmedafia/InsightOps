@@ -51,8 +51,11 @@ The API starts on `http://localhost:4000`.
 ```bash
 curl -X POST http://localhost:4000/api/ingest/metrics ^
   -H "Content-Type: application/json" ^
-  -d "{\"applicationName\":\"checkout-api\",\"environment\":\"production\",\"route\":\"/api/orders\",\"method\":\"POST\",\"statusCode\":500,\"latencyMs\":1320}"
+  -H "x-api-key: iops_your_application_api_key" ^
+  -d "{\"route\":\"/api/orders\",\"method\":\"POST\",\"statusCode\":500,\"latencyMs\":1320}"
 ```
+
+Application API keys are generated when an application is created. The raw key is returned once and only the hash is stored.
 
 ## Realtime Events
 
