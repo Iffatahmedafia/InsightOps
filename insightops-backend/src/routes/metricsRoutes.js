@@ -1,12 +1,15 @@
 const express = require("express");
 const { prisma } = require("../config/prisma");
+const { requireUserAuth } = require("../middleware/requireUserAuth");
 
 const router = express.Router();
+router.use(requireUserAuth);
 
 router.get("/summary", async (req, res, next) => {
   try {
     const since = new Date(Date.now() - 15 * 60 * 1000);
     const applications = await prisma.application.findMany({
+      where: { ownerUserId: req.user.id },
       include: {
         metrics: {
           where: { timestamp: { gte: since } },

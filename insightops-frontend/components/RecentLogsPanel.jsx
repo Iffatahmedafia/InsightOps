@@ -6,18 +6,20 @@ const levelClasses = {
   fatal: "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300",
 };
 
-export function RecentLogsPanel({ logs }) {
+export function RecentLogsPanel({ compact = false, logs, subtitle = "Latest application events", title = "Recent logs" }) {
+  const visibleLogs = compact ? logs.slice(0, 5) : logs.slice(0, 20);
+
   return (
     <section className="panel">
       <div className="panel-header">
         <div>
-          <p className="panel-title">Recent logs</p>
-          <h2 className="mt-1 text-lg font-semibold">Latest application events</h2>
+          <p className="panel-title">{title}</p>
+          <h2 className="mt-1 text-lg font-semibold">{subtitle}</h2>
         </div>
       </div>
 
       <div className="scroll-panel divide-y divide-slate-100 dark:divide-white/10">
-        {logs.slice(0, 20).map((log) => {
+        {visibleLogs.map((log) => {
           const routeOrService = log.route || log.metadata?.route || log.service || "No route";
           const methodRoute = log.method ? `${log.method} ${routeOrService}` : routeOrService;
 
@@ -49,7 +51,7 @@ export function RecentLogsPanel({ logs }) {
           );
         })}
 
-        {logs.length === 0 && (
+        {visibleLogs.length === 0 && (
           <div className="px-5 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
             No logs received yet.
           </div>

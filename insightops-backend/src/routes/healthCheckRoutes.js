@@ -1,9 +1,11 @@
 const express = require("express");
 
 const { prisma } = require("../config/prisma");
+const { requireUserAuth } = require("../middleware/requireUserAuth");
 const { openServiceDownIncident } = require("../services/incidentDetector");
 
 const router = express.Router();
+router.use(requireUserAuth);
 const REQUEST_TIMEOUT_MS = 5000;
 
 async function runHealthCheck(application) {
@@ -44,6 +46,7 @@ router.post("/run", async (req, res, next) => {
   try {
     const applications = await prisma.application.findMany({
       where: {
+        ownerUserId: req.user.id,
         healthUrl: { not: null },
       },
       orderBy: [{ environment: "asc" }, { name: "asc" }],
@@ -86,6 +89,9 @@ router.post("/run", async (req, res, next) => {
 router.get("/", async (req, res, next) => {
   try {
     const healthChecks = await prisma.healthCheck.findMany({
+      where: {
+        application: { ownerUserId: req.user.id },
+      },
       include: {
         application: {
           select: { id: true, name: true, environment: true, healthUrl: true },

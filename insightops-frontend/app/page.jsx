@@ -1,184 +1,51 @@
-"use client";
+import Link from "next/link";
+import { Activity, AlertTriangle, BarChart3, ShieldCheck } from "lucide-react";
 
-import { useEffect, useMemo, useState } from "react";
-import { Activity, AlertTriangle, Clock, Server, ShieldCheck } from "lucide-react";
-
-import { AppShell } from "../components/AppShell";
-import { AddApplicationModal } from "../components/AddApplicationModal";
-import { ApplicationsPanel } from "../components/ApplicationsPanel";
-import { HealthChecksPanel } from "../components/HealthChecksPanel";
-import { IncidentsPanel } from "../components/IncidentsPanel";
-import { RecentLogsPanel } from "../components/RecentLogsPanel";
-import { RealtimeFeed } from "../components/RealtimeFeed";
-import { StatCard } from "../components/StatCard";
-import {
-  createApplication,
-  getApplications,
-  getHealthChecks,
-  getIncidents,
-  getLogs,
-  getMetricsSummary,
-  runHealthChecks,
-} from "../lib/api";
-import { socket } from "../lib/socket";
-
-export default function DashboardPage() {
-  const [applications, setApplications] = useState([]);
-  const [summary, setSummary] = useState([]);
-  const [incidents, setIncidents] = useState([]);
-  const [healthChecks, setHealthChecks] = useState([]);
-  const [logs, setLogs] = useState([]);
-  const [feed, setFeed] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [runningChecks, setRunningChecks] = useState(false);
-  const [showAddApplication, setShowAddApplication] = useState(false);
-  const [error, setError] = useState("");
-
-  async function loadDashboard() {
-    const [apps, metrics, incidentData, checks, logsData] = await Promise.all([
-      getApplications(),
-      getMetricsSummary(),
-      getIncidents(),
-      getHealthChecks(),
-      getLogs(),
-    ]);
-
-    setApplications(apps.applications || []);
-    setSummary(metrics.summary || []);
-    setIncidents(incidentData.incidents || []);
-    setHealthChecks(checks.healthChecks || []);
-    setLogs(logsData.logs || []);
-    setError("");
-  }
-
-  useEffect(() => {
-    loadDashboard()
-      .catch((requestError) => {
-        console.error(requestError);
-        setError("Unable to reach the InsightOps backend on localhost:4000.");
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    function pushFeed(type, payload) {
-      setFeed((items) => [
-        {
-          id: crypto.randomUUID(),
-          type,
-          payload,
-          receivedAt: new Date().toISOString(),
-        },
-        ...items,
-      ].slice(0, 40));
-    }
-
-    socket.on("metric:created", (payload) => {
-      pushFeed("metric", payload);
-      loadDashboard().catch(console.error);
-    });
-
-    socket.on("log:created", (payload) => {
-      pushFeed("log", payload);
-      setLogs((items) => [payload.log, ...items].filter(Boolean).slice(0, 100));
-    });
-
-    socket.on("health-check:created", (payload) => {
-      pushFeed("health", payload);
-      loadDashboard().catch(console.error);
-    });
-
-    socket.on("incident:opened", (payload) => {
-      pushFeed("incident", payload);
-      loadDashboard().catch(console.error);
-    });
-
-    return () => {
-      socket.off("metric:created");
-      socket.off("log:created");
-      socket.off("health-check:created");
-      socket.off("incident:opened");
-    };
-  }, []);
-
-  const totals = useMemo(() => {
-    const requests = summary.reduce((total, item) => total + item.requests, 0);
-    const errors = summary.reduce((total, item) => total + item.errors, 0);
-    const openIncidents = incidents.filter((incident) => incident.status === "open").length;
-    const avgLatency =
-      summary.length === 0
-        ? 0
-        : Math.round(summary.reduce((total, item) => total + item.avgLatencyMs, 0) / summary.length);
-
-    return { requests, errors, openIncidents, avgLatency };
-  }, [summary, incidents]);
-
-  async function handleRunChecks() {
-    setRunningChecks(true);
-    try {
-      await runHealthChecks();
-      await loadDashboard();
-    } catch (requestError) {
-      console.error(requestError);
-      setError("Health checks could not be started. Confirm the backend is running.");
-    } finally {
-      setRunningChecks(false);
-    }
-  }
-
-  async function handleCreateApplication(payload) {
-    try {
-      const result = await createApplication(payload);
-      await loadDashboard();
-      return result;
-    } catch (requestError) {
-      console.error(requestError);
-      setError("Application could not be created. Check the form values and backend connection.");
-      throw requestError;
-    }
-  }
-
+export default function LandingPage() {
   return (
-    <AppShell
-      loading={loading}
-      error={error}
-      runningChecks={runningChecks}
-      onAddApplication={() => setShowAddApplication(true)}
-      onRunChecks={handleRunChecks}
-    >
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard icon={Server} label="Applications" value={applications.length} tone="blue" />
-        <StatCard icon={AlertTriangle} label="Open Incidents" value={totals.openIncidents} tone="red" />
-        <StatCard icon={Activity} label="Recent Requests" value={totals.requests} tone="emerald" />
-        <StatCard icon={Clock} label="Avg Latency" value={`${totals.avgLatency}ms`} tone="amber" />
-        <StatCard icon={ShieldCheck} label="Errors" value={totals.errors} tone="red" />
+    <>
+      <section className="grid items-center gap-8 rounded-lg border border-slate-200 bg-white/88 px-5 py-10 shadow-soft backdrop-blur dark:border-white/10 dark:bg-neutral-900/82 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
+        <div>
+          <div className="mb-4 inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold uppercase text-blue-700 dark:border-blue-400/20 dark:bg-blue-500/10 dark:text-blue-300">
+            Real-time reliability monitoring
+          </div>
+          <h1 className="max-w-3xl text-4xl font-semibold tracking-normal text-slate-950 dark:text-white sm:text-5xl">
+            InsightOps helps teams spot incidents before users do.
+          </h1>
+          <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600 dark:text-slate-400">
+            Register applications, ingest logs and API metrics, monitor health checks, and investigate route-level incidents from one focused dashboard.
+          </p>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Link href="/register" className="inline-flex h-11 items-center rounded-lg bg-blue-600 px-5 text-sm font-semibold text-white shadow-glow transition hover:bg-blue-700">
+              Create account
+            </Link>
+            <Link href="/login" className="inline-flex h-11 items-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100 dark:border-white/10 dark:bg-neutral-950 dark:text-slate-200 dark:hover:bg-white/10">
+              Sign in
+            </Link>
+          </div>
+        </div>
+
+        <div className="grid gap-3">
+          {[
+            { icon: Activity, title: "Live telemetry", text: "Stream logs, metrics, health checks, and incidents." },
+            { icon: AlertTriangle, title: "Route-aware incidents", text: "Detect failures on specific endpoints like POST /api/orders." },
+            { icon: ShieldCheck, title: "Application API keys", text: "Secure ingestion with per-application keys." },
+            { icon: BarChart3, title: "Focused app pages", text: "Keep the dashboard minimal and details inside each app." },
+          ].map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <article className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-neutral-950" key={item.title}>
+                <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
+                  <Icon size={18} />
+                </div>
+                <h2 className="text-sm font-semibold text-slate-950 dark:text-white">{item.title}</h2>
+                <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-400">{item.text}</p>
+              </article>
+            );
+          })}
+        </div>
       </section>
-
-      <section className="grid gap-5 xl:grid-cols-12">
-        <div className="xl:col-span-5" id="applications">
-          <ApplicationsPanel applications={applications} summary={summary} />
-        </div>
-
-        <div className="xl:col-span-7" id="incidents">
-          <IncidentsPanel incidents={incidents} onResolved={loadDashboard} />
-        </div>
-
-        <div className="xl:col-span-7">
-          <RecentLogsPanel logs={logs} />
-        </div>
-
-        <div className="xl:col-span-5">
-          <RealtimeFeed feed={feed} />
-        </div>
-
-        <div className="xl:col-span-12">
-          <HealthChecksPanel healthChecks={healthChecks} />
-        </div>
-      </section>
-
-      {showAddApplication && (
-        <AddApplicationModal onClose={() => setShowAddApplication(false)} onSubmit={handleCreateApplication} />
-      )}
-    </AppShell>
+    </>
   );
 }

@@ -16,8 +16,10 @@ import {
   getLogs,
   getMetricsSummary,
 } from "../../../lib/api";
+import { useAuth } from "../../../lib/useAuth";
 
 export default function ApplicationDetailPage() {
+  const { loading: authLoading, user } = useAuth();
   const params = useParams();
   const applicationId = params.id;
   const [application, setApplication] = useState(null);
@@ -46,13 +48,17 @@ export default function ApplicationDetailPage() {
   }
 
   useEffect(() => {
+    if (authLoading || !user) {
+      return;
+    }
+
     loadApplicationDetail()
       .catch((requestError) => {
         console.error(requestError);
         setError("Unable to load application detail from the backend.");
       })
       .finally(() => setLoading(false));
-  }, [applicationId]);
+  }, [applicationId, authLoading, user]);
 
   const appSummary = useMemo(
     () => summary.find((item) => item.application?.id === applicationId),
@@ -84,7 +90,7 @@ export default function ApplicationDetailPage() {
     return { requests, errors, avgLatency, openIncidents, latestHealth };
   }, [appSummary, appHealthChecks, appIncidents]);
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <section className="panel flex min-h-[360px] items-center justify-center">
         <div className="text-center">
@@ -98,7 +104,7 @@ export default function ApplicationDetailPage() {
   if (error || !application) {
     return (
       <section className="panel px-5 py-8">
-        <Link href="/" className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-300">
+        <Link href="/dashboard" className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-300">
           <ArrowLeft size={16} />
           Back to dashboard
         </Link>
@@ -113,7 +119,7 @@ export default function ApplicationDetailPage() {
   return (
     <>
       <section className="rounded-lg border border-slate-200 bg-white/88 px-5 py-5 shadow-soft backdrop-blur dark:border-white/10 dark:bg-neutral-900/82">
-        <Link href="/" className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-300">
+        <Link href="/dashboard" className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-300">
           <ArrowLeft size={16} />
           Back to dashboard
         </Link>

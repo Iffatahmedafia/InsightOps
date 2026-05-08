@@ -1,11 +1,16 @@
 const express = require("express");
 const { prisma } = require("../config/prisma");
+const { requireUserAuth } = require("../middleware/requireUserAuth");
 
 const router = express.Router();
+router.use(requireUserAuth);
 
 router.get("/", async (req, res, next) => {
   try {
     const incidents = await prisma.incident.findMany({
+      where: {
+        application: { ownerUserId: req.user.id },
+      },
       include: {
         application: {
           select: { id: true, name: true, environment: true, healthUrl: true },
@@ -23,15 +28,26 @@ router.get("/", async (req, res, next) => {
 
 router.patch("/:id/resolve", async (req, res, next) => {
   try {
+    const existingIncident = await prisma.incident.findFirst({
+      where: {
+        id: req.params.id,
+        application: { ownerUserId: req.user.id },
+      },
+    });
+
+    if (!existingIncident) {
+      return res.status(404).json({ error: { message: "Incident not found" } });
+    }
+
     const incident = await prisma.incident.update({
-      where: { id: req.params.id },
+      where: { id: existingIncident.id },
       data: { status: "resolved", resolvedAt: new Date() },
       include: { application: true },
     });
 
-    res.json({ incident });
+    return res.json({ incident });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 

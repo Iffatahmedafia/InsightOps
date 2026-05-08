@@ -3,9 +3,11 @@ const { z } = require("zod");
 
 const { prisma } = require("../config/prisma");
 const { validate } = require("../middleware/validate");
+const { requireUserAuth } = require("../middleware/requireUserAuth");
 const { generateApiKey, hashApiKey } = require("../utils/apiKeys");
 
 const router = express.Router();
+router.use(requireUserAuth);
 
 const applicationSchema = z.object({
   name: z.string().min(1),
@@ -18,7 +20,8 @@ router.post("/", validate(applicationSchema), async (req, res, next) => {
   try {
     const existingApplication = await prisma.application.findUnique({
       where: {
-        name_environment: {
+        ownerUserId_name_environment: {
+          ownerUserId: req.user.id,
           name: req.body.name,
           environment: req.body.environment,
         },
@@ -41,6 +44,7 @@ router.post("/", validate(applicationSchema), async (req, res, next) => {
     const application = await prisma.application.create({
       data: {
         ...req.body,
+        ownerUserId: req.user.id,
         apiKeyHash: hashApiKey(apiKey),
       },
     });
@@ -57,6 +61,7 @@ router.post("/", validate(applicationSchema), async (req, res, next) => {
 router.get("/", async (req, res, next) => {
   try {
     const applications = await prisma.application.findMany({
+      where: { ownerUserId: req.user.id },
       orderBy: [{ environment: "asc" }, { name: "asc" }],
     });
 
@@ -82,7 +87,7 @@ router.get("/:id", async (req, res, next) => {
       },
     });
 
-    if (!application) {
+    if (!application || application.ownerUserId !== req.user.id) {
       return res.status(404).json({ error: { message: "Application not found" } });
     }
 
@@ -95,14 +100,22 @@ router.get("/:id", async (req, res, next) => {
 router.post("/:id/api-key", async (req, res, next) => {
   try {
     const apiKey = generateApiKey();
-    const application = await prisma.application.update({
-      where: { id: req.params.id },
+    const application = await prisma.application.findFirst({
+      where: { id: req.params.id, ownerUserId: req.user.id },
+    });
+
+    if (!application) {
+      return res.status(404).json({ error: { message: "Application not found" } });
+    }
+
+    const updatedApplication = await prisma.application.update({
+      where: { id: application.id },
       data: { apiKeyHash: hashApiKey(apiKey) },
     });
 
-    res.json({ application: sanitizeApplication(application), apiKey });
+    return res.json({ application: sanitizeApplication(updatedApplication), apiKey });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 

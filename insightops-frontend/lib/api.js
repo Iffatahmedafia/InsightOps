@@ -1,12 +1,23 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 async function request(path, options = {}) {
+  const headers = {
+    "Content-Type": "application/json",
+    ...options.headers,
+  };
+
+  if (typeof window !== "undefined") {
+    const { supabase } = await import("./supabaseClient");
+    const { data } = await supabase.auth.getSession();
+
+    if (data.session?.access_token) {
+      headers.Authorization = `Bearer ${data.session.access_token}`;
+    }
+  }
+
   const response = await fetch(`${API_BASE_URL}${path}`, {
     cache: "no-store",
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
+    headers,
     ...options,
   });
 

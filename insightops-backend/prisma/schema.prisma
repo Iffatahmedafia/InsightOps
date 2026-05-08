@@ -12,6 +12,7 @@ model Application {
   name         String
   environment  String         @default("production")
   owner        String?
+  ownerUserId  String?
   healthUrl    String?
   apiKeyHash   String?        @unique
   createdAt    DateTime       @default(now())
@@ -21,7 +22,8 @@ model Application {
   logs         LogEntry[]
   metrics      MetricSample[]
 
-  @@unique([name, environment])
+  @@unique([ownerUserId, name, environment])
+  @@index([ownerUserId])
   @@index([environment])
 }
 
