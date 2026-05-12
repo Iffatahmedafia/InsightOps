@@ -1,5 +1,18 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
+function toQueryString(params = {}) {
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      searchParams.set(key, value);
+    }
+  });
+
+  const query = searchParams.toString();
+  return query ? `?${query}` : "";
+}
+
 async function request(path, options = {}) {
   const headers = {
     "Content-Type": "application/json",
@@ -31,9 +44,9 @@ async function request(path, options = {}) {
 export const getApplications = () => request("/api/applications");
 export const getApplication = (id) => request(`/api/applications/${id}`);
 export const getMetricsSummary = () => request("/api/metrics/summary");
-export const getIncidents = () => request("/api/incidents");
+export const getIncidents = (filters = {}) => request(`/api/incidents${toQueryString(filters)}`);
 export const getHealthChecks = () => request("/api/health-checks");
-export const getLogs = () => request("/api/logs");
+export const getLogs = (filters = {}) => request(`/api/logs${toQueryString(filters)}`);
 
 export const runHealthChecks = () => request("/api/health-checks/run", { method: "POST" });
 

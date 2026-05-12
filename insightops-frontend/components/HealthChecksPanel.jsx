@@ -3,8 +3,8 @@ export function HealthChecksPanel({ healthChecks }) {
     <section className="panel">
       <div className="panel-header">
         <div>
-          <p className="panel-title">Health checks</p>
-          <h2 className="mt-1 text-lg font-semibold">Latest endpoint probes</h2>
+          <p className="panel-title">Health status</p>
+          <h2 className="mt-1 text-lg font-semibold">Latest checks</h2>
         </div>
       </div>
 

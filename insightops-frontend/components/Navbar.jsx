@@ -3,14 +3,15 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Activity, AlertTriangle, LayoutDashboard, LogOut, Moon, Server, SunMedium } from "lucide-react";
+import { Activity, AlertTriangle, FileText, LayoutDashboard, LogOut, Moon, Server, SunMedium } from "lucide-react";
 
 import { supabase } from "../lib/supabaseClient";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard#applications", label: "Applications", icon: Server },
-  { href: "/dashboard#incidents", label: "Incidents", icon: AlertTriangle },
+  { href: "/incidents", label: "Incidents", icon: AlertTriangle },
+  { href: "/logs", label: "Logs", icon: FileText },
 ];
 
 export function Navbar({ dark, onToggleTheme }) {

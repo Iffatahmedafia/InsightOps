@@ -9,7 +9,6 @@ import { ApplicationsPanel } from "../../components/ApplicationsPanel";
 import { HealthChecksPanel } from "../../components/HealthChecksPanel";
 import { IncidentsPanel } from "../../components/IncidentsPanel";
 import { RecentLogsPanel } from "../../components/RecentLogsPanel";
-import { RealtimeFeed } from "../../components/RealtimeFeed";
 import { StatCard } from "../../components/StatCard";
 import {
   createApplication,
@@ -30,7 +29,6 @@ export default function DashboardPage() {
   const [incidents, setIncidents] = useState([]);
   const [healthChecks, setHealthChecks] = useState([]);
   const [logs, setLogs] = useState([]);
-  const [feed, setFeed] = useState([]);
   const [loading, setLoading] = useState(true);
   const [runningChecks, setRunningChecks] = useState(false);
   const [showAddApplication, setShowAddApplication] = useState(false);
@@ -42,7 +40,7 @@ export default function DashboardPage() {
       getMetricsSummary(),
       getIncidents(),
       getHealthChecks(),
-      getLogs(),
+      getLogs({ level: "error", limit: 5 }),
     ]);
 
     setApplications(apps.applications || []);
@@ -71,35 +69,21 @@ export default function DashboardPage() {
       return undefined;
     }
 
-    function pushFeed(type, payload) {
-      setFeed((items) => [
-        {
-          id: crypto.randomUUID(),
-          type,
-          payload,
-          receivedAt: new Date().toISOString(),
-        },
-        ...items,
-      ].slice(0, 40));
-    }
-
     socket.on("metric:created", (payload) => {
-      pushFeed("metric", payload);
       loadDashboard().catch(console.error);
     });
 
     socket.on("log:created", (payload) => {
-      pushFeed("log", payload);
-      setLogs((items) => [payload.log, ...items].filter(Boolean).slice(0, 100));
+      if (["error", "fatal"].includes(payload.log?.level)) {
+        setLogs((items) => [payload.log, ...items].filter(Boolean).slice(0, 5));
+      }
     });
 
     socket.on("health-check:created", (payload) => {
-      pushFeed("health", payload);
       loadDashboard().catch(console.error);
     });
 
     socket.on("incident:opened", (payload) => {
-      pushFeed("incident", payload);
       loadDashboard().catch(console.error);
     });
 
@@ -169,24 +153,20 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-12">
-        <div className="xl:col-span-5" id="applications">
+        <div className="xl:col-span-6" id="applications">
           <ApplicationsPanel applications={applications} summary={summary} />
         </div>
 
-        <div className="xl:col-span-7" id="incidents">
+        <div className="xl:col-span-6">
+          <HealthChecksPanel healthChecks={healthChecks} />
+        </div>
+
+        <div className="xl:col-span-12" id="incidents">
           <IncidentsPanel incidents={incidents} onResolved={loadDashboard} />
         </div>
 
-        <div className="xl:col-span-7">
-          <RecentLogsPanel compact logs={criticalLogs} title="Recent critical logs" subtitle="Errors and fatal events" />
-        </div>
-
-        <div className="xl:col-span-5">
-          <RealtimeFeed feed={feed} />
-        </div>
-
         <div className="xl:col-span-12">
-          <HealthChecksPanel healthChecks={healthChecks} />
+          <RecentLogsPanel compact logs={criticalLogs} title="Recent critical logs" subtitle="Errors and fatal events" />
         </div>
       </section>
 

@@ -36,7 +36,7 @@ export default function ApplicationDetailPage() {
       getMetricsSummary(),
       getIncidents(),
       getHealthChecks(),
-      getLogs(),
+      getLogs({ applicationId, limit: 100 }),
     ]);
 
     setApplication(applicationData.application);
@@ -73,11 +73,6 @@ export default function ApplicationDetailPage() {
   const appHealthChecks = useMemo(
     () => healthChecks.filter((check) => check.applicationId === applicationId || check.application?.id === applicationId),
     [applicationId, healthChecks]
-  );
-
-  const appLogs = useMemo(
-    () => logs.filter((log) => log.applicationId === applicationId || log.application?.id === applicationId),
-    [applicationId, logs]
   );
 
   const totals = useMemo(() => {
@@ -174,7 +169,7 @@ export default function ApplicationDetailPage() {
         </div>
 
         <div className="xl:col-span-12">
-          <RecentLogsPanel logs={appLogs} />
+          <RecentLogsPanel logs={logs} />
         </div>
       </section>
     </>

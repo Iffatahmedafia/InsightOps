@@ -7,17 +7,27 @@ router.use(requireUserAuth);
 
 router.get("/", async (req, res, next) => {
   try {
+    const limit = Math.min(Number(req.query.limit) || 100, 200);
+    const where = {
+      application: { ownerUserId: req.user.id },
+    };
+
+    if (req.query.applicationId) where.applicationId = req.query.applicationId;
+    if (req.query.status) where.status = req.query.status;
+    if (req.query.severity) where.severity = req.query.severity;
+    if (req.query.type) where.type = req.query.type;
+    if (req.query.route) where.route = req.query.route;
+    if (req.query.method) where.method = req.query.method.toUpperCase();
+
     const incidents = await prisma.incident.findMany({
-      where: {
-        application: { ownerUserId: req.user.id },
-      },
+      where,
       include: {
         application: {
           select: { id: true, name: true, environment: true, healthUrl: true },
         },
       },
       orderBy: { openedAt: "desc" },
-      take: 100,
+      take: limit,
     });
 
     res.json({ incidents });
