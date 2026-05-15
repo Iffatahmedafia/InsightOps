@@ -44,7 +44,7 @@ export function RecentLogsPanel({ compact = false, logs, subtitle = "Latest appl
                 </div>
               </div>
 
-              <time className="text-xs text-slate-500 dark:text-slate-400">
+              <time className="text-xs text-slate-500 dark:text-slate-400 md:text-right">
                 {new Date(log.timestamp).toLocaleString()}
               </time>
             </article>

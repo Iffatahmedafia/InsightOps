@@ -15,6 +15,11 @@ model Application {
   ownerUserId  String?
   healthUrl    String?
   apiKeyHash   String?        @unique
+  alertEmail   String?
+  alertsEnabled Boolean       @default(false)
+  incidentOpenedAlertsEnabled Boolean @default(true)
+  serviceDownAlertsEnabled Boolean @default(true)
+  incidentResolvedAlertsEnabled Boolean @default(true)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   healthChecks HealthCheck[]
@@ -77,6 +82,14 @@ model Incident {
   evidence      Json?
   openedAt      DateTime    @default(now())
   resolvedAt    DateTime?
+  openedAlertSentAt DateTime?
+  resolvedAlertSentAt DateTime?
+  aiSummary     String?
+  aiRootCause   String?
+  aiRecommendedActions Json?
+  aiConfidence  String?
+  aiModel       String?
+  aiGeneratedAt DateTime?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)

@@ -5,6 +5,7 @@ const { validate } = require("../middleware/validate");
 const { prisma } = require("../config/prisma");
 const { requireApplicationApiKey } = require("../middleware/requireApplicationApiKey");
 const { evaluateIncidentSignals } = require("../services/incidentDetector");
+const { sendIncidentOpenedAlert } = require("../services/emailAlertService");
 
 const router = express.Router();
 
@@ -74,6 +75,9 @@ router.post("/metrics", requireApplicationApiKey, validate(metricSchema), async 
     const incident = await evaluateIncidentSignals(application.id);
     if (incident) {
       req.app.get("io").emit("incident:opened", { incident });
+      sendIncidentOpenedAlert(incident).catch((error) => {
+        console.error("Unable to send incident opened alert", error);
+      });
     }
 
     res.status(201).json({ metric, incident });

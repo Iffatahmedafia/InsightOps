@@ -20,7 +20,7 @@ export function HealthChecksPanel({ healthChecks }) {
               </span>
             </div>
 
-            <div className="flex items-center gap-2 sm:justify-end">
+            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
               <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${check.status === "UP" ? "status-up" : "status-down"}`}>
                 {check.status}
               </span>

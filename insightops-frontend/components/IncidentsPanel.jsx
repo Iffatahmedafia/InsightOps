@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 
 import { resolveIncident } from "../lib/api";
@@ -35,22 +36,32 @@ export function IncidentsPanel({ incidents, onResolved }) {
                 </span>
                 <span className="text-xs text-slate-500 dark:text-slate-400">{incident.type}</span>
               </div>
-              <strong className="block text-sm font-semibold text-slate-950 dark:text-white">{incident.title}</strong>
+              <Link className="block text-sm font-semibold text-slate-950 hover:text-blue-600 dark:text-white dark:hover:text-blue-300" href={`/incidents/${incident.id}`}>
+                {incident.title}
+              </Link>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                 {incident.application?.name || "Unknown app"} - {incident.rootCauseHint || "No hint available"}
               </p>
             </div>
 
-            {incident.status === "open" && (
-              <button
-                type="button"
-                onClick={() => handleResolve(incident.id)}
-                className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
+            <div className="grid gap-2">
+              <Link
+                href={`/incidents/${incident.id}`}
+                className="inline-flex h-9 w-full items-center justify-center rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10 md:w-auto"
               >
-                <CheckCircle2 size={15} />
-                Resolve
-              </button>
-            )}
+                Investigate
+              </Link>
+              {incident.status === "open" && (
+                <button
+                  type="button"
+                  onClick={() => handleResolve(incident.id)}
+                  className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10 md:w-auto"
+                >
+                  <CheckCircle2 size={15} />
+                  Resolve
+                </button>
+              )}
+            </div>
           </article>
         ))}
 

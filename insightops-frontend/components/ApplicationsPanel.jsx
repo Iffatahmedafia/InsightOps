@@ -24,12 +24,12 @@ export function ApplicationsPanel({ applications, summary }) {
 
           return (
             <Link
-              className="flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-slate-50 dark:hover:bg-white/5"
+              className="flex flex-col gap-4 px-5 py-4 transition hover:bg-slate-50 dark:hover:bg-white/5 sm:flex-row sm:items-center sm:justify-between"
               href={`/applications/${app.id}`}
               key={app.id}
             >
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
+              <div className="min-w-0 sm:flex-1">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
                   <strong className="truncate text-sm font-semibold text-slate-950 dark:text-white">{app.name}</strong>
                   <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-white/10 dark:text-slate-300">
                     {app.environment}
@@ -41,7 +41,7 @@ export function ApplicationsPanel({ applications, summary }) {
                 </div>
               </div>
 
-              <div className="grid min-w-[116px] grid-cols-2 gap-2 text-right text-xs">
+              <div className="grid w-full grid-cols-2 gap-2 text-left text-xs sm:w-auto sm:min-w-[116px] sm:text-right">
                 <div>
                   <span className="block font-semibold text-slate-950 dark:text-white">{appSummary?.requests || 0}</span>
                   <span className="text-slate-500 dark:text-slate-400">req</span>

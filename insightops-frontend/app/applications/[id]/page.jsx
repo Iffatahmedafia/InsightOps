@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { Activity, AlertTriangle, ArrowLeft, Clock, ExternalLink, ShieldCheck } from "lucide-react";
+import { Activity, AlertTriangle, ArrowLeft, BellRing, Check, ClipboardCopy, Clock, ExternalLink, KeyRound, Radio, RotateCw, ShieldCheck, Terminal } from "lucide-react";
 
 import { HealthChecksPanel } from "../../../components/HealthChecksPanel";
 import { IncidentsPanel } from "../../../components/IncidentsPanel";
@@ -15,6 +15,9 @@ import {
   getIncidents,
   getLogs,
   getMetricsSummary,
+  API_BASE_URL,
+  rotateApplicationApiKey,
+  updateApplicationAlertSettings,
 } from "../../../lib/api";
 import { useAuth } from "../../../lib/useAuth";
 
@@ -28,6 +31,11 @@ export default function ApplicationDetailPage() {
   const [healthChecks, setHealthChecks] = useState([]);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [rotatingKey, setRotatingKey] = useState(false);
+  const [savingAlerts, setSavingAlerts] = useState(false);
+  const [createdApiKey, setCreatedApiKey] = useState("");
+  const [copiedSnippet, setCopiedSnippet] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
   const [error, setError] = useState("");
 
   async function loadApplicationDetail() {
@@ -84,6 +92,53 @@ export default function ApplicationDetailPage() {
 
     return { requests, errors, avgLatency, openIncidents, latestHealth };
   }, [appSummary, appHealthChecks, appIncidents]);
+
+  const latestLog = useMemo(
+    () => application?.logs?.[0] || logs[0],
+    [application, logs]
+  );
+
+  const latestMetric = application?.metrics?.[0];
+
+  async function handleRotateApiKey() {
+    setRotatingKey(true);
+    setError("");
+
+    try {
+      const result = await rotateApplicationApiKey(applicationId);
+      setApplication((current) => ({ ...current, ...result.application }));
+      setCreatedApiKey(result.apiKey || "");
+    } catch (requestError) {
+      console.error(requestError);
+      setError("API key could not be rotated. Confirm the backend is running.");
+    } finally {
+      setRotatingKey(false);
+    }
+  }
+
+  async function copySnippet(type, value) {
+    await navigator.clipboard.writeText(value);
+    setCopiedSnippet(type);
+    window.setTimeout(() => setCopiedSnippet(""), 1600);
+  }
+
+  async function handleSaveAlertSettings(payload) {
+    setSavingAlerts(true);
+    setAlertMessage("");
+    setError("");
+
+    try {
+      const result = await updateApplicationAlertSettings(applicationId, payload);
+      setApplication((current) => ({ ...current, ...result.application }));
+      setAlertMessage("Alert settings saved.");
+    } catch (requestError) {
+      console.error(requestError);
+      setError("Alert settings could not be saved. Check the email and backend connection.");
+      throw requestError;
+    } finally {
+      setSavingAlerts(false);
+    }
+  }
 
   if (loading || authLoading) {
     return (
@@ -159,6 +214,26 @@ export default function ApplicationDetailPage() {
         <StatCard icon={ShieldCheck} label="Latest Health" value={totals.latestHealth} tone={totals.latestHealth === "UP" ? "emerald" : "red"} />
       </section>
 
+      <ApplicationSetupPanel
+        application={application}
+        apiBaseUrl={API_BASE_URL}
+        copiedSnippet={copiedSnippet}
+        createdApiKey={createdApiKey}
+        latestHealth={totals.latestHealth}
+        latestLog={latestLog}
+        latestMetric={latestMetric}
+        onCopySnippet={copySnippet}
+        onRotateApiKey={handleRotateApiKey}
+        rotatingKey={rotatingKey}
+      />
+
+      <AlertSettingsPanel
+        alertMessage={alertMessage}
+        application={application}
+        onSave={handleSaveAlertSettings}
+        saving={savingAlerts}
+      />
+
       <section className="grid gap-5 xl:grid-cols-12">
         <div className="xl:col-span-7">
           <IncidentsPanel incidents={appIncidents} onResolved={loadApplicationDetail} />
@@ -173,5 +248,284 @@ export default function ApplicationDetailPage() {
         </div>
       </section>
     </>
+  );
+}
+
+function AlertSettingsPanel({ alertMessage, application, onSave, saving }) {
+  const [form, setForm] = useState(() => ({
+    alertEmail: application.alertEmail || "",
+    alertsEnabled: Boolean(application.alertsEnabled),
+    incidentOpenedAlertsEnabled: application.incidentOpenedAlertsEnabled ?? true,
+    serviceDownAlertsEnabled: application.serviceDownAlertsEnabled ?? true,
+    incidentResolvedAlertsEnabled: application.incidentResolvedAlertsEnabled ?? true,
+  }));
+  const [localError, setLocalError] = useState("");
+
+  useEffect(() => {
+    setForm({
+      alertEmail: application.alertEmail || "",
+      alertsEnabled: Boolean(application.alertsEnabled),
+      incidentOpenedAlertsEnabled: application.incidentOpenedAlertsEnabled ?? true,
+      serviceDownAlertsEnabled: application.serviceDownAlertsEnabled ?? true,
+      incidentResolvedAlertsEnabled: application.incidentResolvedAlertsEnabled ?? true,
+    });
+  }, [application]);
+
+  function updateField(field, value) {
+    setLocalError("");
+    setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    if (form.alertsEnabled && !form.alertEmail.trim()) {
+      setLocalError("Add an alert email before enabling alerts.");
+      return;
+    }
+
+    try {
+      await onSave({
+        ...form,
+        alertEmail: form.alertEmail.trim(),
+      });
+    } catch {
+      // Parent page shows the request error.
+    }
+  }
+
+  return (
+    <section className="panel">
+      <div className="panel-header">
+        <div>
+          <p className="panel-title">Email alerts</p>
+          <h2 className="mt-1 text-lg font-semibold">Notify your team when incidents change</h2>
+        </div>
+        <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${form.alertsEnabled ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300" : "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300"}`}>
+          <BellRing size={14} />
+          {form.alertsEnabled ? "Enabled" : "Disabled"}
+        </span>
+      </div>
+
+      <form onSubmit={handleSubmit} className="grid gap-4 p-4 lg:grid-cols-[0.9fr_1.1fr] lg:p-5">
+        <div className="grid gap-4">
+          <label className="block">
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Alert email</span>
+            <input
+              type="email"
+              value={form.alertEmail}
+              onChange={(event) => updateField("alertEmail", event.target.value)}
+              className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition focus:border-blue-500 dark:border-white/10 dark:bg-neutral-950 dark:text-white"
+              placeholder="oncall@example.com"
+            />
+          </label>
+
+          <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-neutral-950">
+            <input
+              type="checkbox"
+              checked={form.alertsEnabled}
+              onChange={(event) => updateField("alertsEnabled", event.target.checked)}
+              className="mt-1 h-4 w-4"
+            />
+            <span>
+              <span className="block text-sm font-semibold text-slate-950 dark:text-white">Enable alerts for this application</span>
+              <span className="mt-1 block text-sm leading-6 text-slate-500 dark:text-slate-400">
+                InsightOps will email the configured address when selected events occur.
+              </span>
+            </span>
+          </label>
+        </div>
+
+        <div className="grid gap-3">
+          <AlertToggle
+            checked={form.incidentOpenedAlertsEnabled}
+            description="Send email when error-rate or latency incidents open."
+            label="Incident opened"
+            onChange={(value) => updateField("incidentOpenedAlertsEnabled", value)}
+          />
+          <AlertToggle
+            checked={form.serviceDownAlertsEnabled}
+            description="Send email when health checks create a service-down incident."
+            label="Service down"
+            onChange={(value) => updateField("serviceDownAlertsEnabled", value)}
+          />
+          <AlertToggle
+            checked={form.incidentResolvedAlertsEnabled}
+            description="Send email after an incident is resolved."
+            label="Incident resolved"
+            onChange={(value) => updateField("incidentResolvedAlertsEnabled", value)}
+          />
+
+          {(localError || alertMessage) && (
+            <p className={`text-sm font-medium ${localError ? "text-red-600 dark:text-red-300" : "text-emerald-700 dark:text-emerald-300"}`}>
+              {localError || alertMessage}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="inline-flex h-10 w-full items-center justify-center rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-fit"
+          >
+            {saving ? "Saving" : "Save alert settings"}
+          </button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+function AlertToggle({ checked, description, label, onChange }) {
+  return (
+    <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-neutral-950">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="mt-1 h-4 w-4"
+      />
+      <span>
+        <span className="block text-sm font-semibold text-slate-950 dark:text-white">{label}</span>
+        <span className="mt-1 block text-sm leading-6 text-slate-500 dark:text-slate-400">{description}</span>
+      </span>
+    </label>
+  );
+}
+
+function ApplicationSetupPanel({
+  apiBaseUrl,
+  application,
+  copiedSnippet,
+  createdApiKey,
+  latestHealth,
+  latestLog,
+  latestMetric,
+  onCopySnippet,
+  onRotateApiKey,
+  rotatingKey,
+}) {
+  const apiKeyValue = createdApiKey || "YOUR_APPLICATION_API_KEY";
+  const logSnippet = `curl -X POST ${apiBaseUrl}/api/ingest/logs \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: ${apiKeyValue}" \\
+  -d '{
+    "level": "error",
+    "message": "Checkout request failed",
+    "service": "${application.name}",
+    "route": "/api/checkout",
+    "method": "POST",
+    "traceId": "trace_123"
+  }'`;
+
+  const metricSnippet = `curl -X POST ${apiBaseUrl}/api/ingest/metrics \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: ${apiKeyValue}" \\
+  -d '{
+    "route": "/api/checkout",
+    "method": "POST",
+    "statusCode": 500,
+    "latencyMs": 842,
+    "traceId": "trace_123"
+  }'`;
+
+  return (
+    <section className="panel">
+      <div className="panel-header">
+        <div>
+          <p className="panel-title">Application setup</p>
+          <h2 className="mt-1 text-lg font-semibold">Connect {application.name}</h2>
+        </div>
+        <button
+          type="button"
+          onClick={onRotateApiKey}
+          disabled={rotatingKey}
+          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10 sm:w-auto"
+        >
+          <RotateCw size={16} className={rotatingKey ? "animate-spin" : ""} />
+          {rotatingKey ? "Rotating" : "Rotate key"}
+        </button>
+      </div>
+
+      <div className="grid gap-4 p-4 lg:grid-cols-[0.9fr_1.1fr] lg:p-5">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <SetupStatusCard icon={Radio} label="API URL" value={`${apiBaseUrl}/api/ingest`} />
+          <SetupStatusCard icon={KeyRound} label="API key status" value={application.hasApiKey ? "Configured" : "Missing"} tone={application.hasApiKey ? "emerald" : "red"} />
+          <SetupStatusCard icon={Clock} label="Last log received" value={latestLog ? new Date(latestLog.timestamp).toLocaleString() : "No logs yet"} />
+          <SetupStatusCard icon={Activity} label="Last metric received" value={latestMetric ? new Date(latestMetric.timestamp).toLocaleString() : "No metrics yet"} />
+          <SetupStatusCard icon={ShieldCheck} label="Health status" value={latestHealth} tone={latestHealth === "UP" ? "emerald" : latestHealth === "DOWN" ? "red" : "slate"} />
+          <SetupStatusCard icon={ExternalLink} label="Health URL" value={application.healthUrl || "Not configured"} />
+        </div>
+
+        <div className="grid min-w-0 gap-4">
+          {createdApiKey && (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-500/20 dark:bg-emerald-500/10">
+              <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">New API key created</p>
+              <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-300">Store it now. InsightOps only shows the raw key once.</p>
+              <code className="mt-3 block break-all rounded-lg bg-white px-3 py-2 text-xs text-slate-800 dark:bg-neutral-950 dark:text-slate-100">
+                {createdApiKey}
+              </code>
+            </div>
+          )}
+
+          <SnippetCard
+            copied={copiedSnippet === "logs"}
+            icon={Terminal}
+            label="Send a log"
+            snippet={logSnippet}
+            onCopy={() => onCopySnippet("logs", logSnippet)}
+          />
+          <SnippetCard
+            copied={copiedSnippet === "metrics"}
+            icon={Activity}
+            label="Send a metric"
+            snippet={metricSnippet}
+            onCopy={() => onCopySnippet("metrics", metricSnippet)}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SetupStatusCard({ icon: Icon, label, tone = "blue", value }) {
+  const toneClasses = {
+    blue: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
+    emerald: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+    red: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300",
+    slate: "bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300",
+  };
+
+  return (
+    <article className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-neutral-950">
+      <div className={`mb-3 flex h-9 w-9 items-center justify-center rounded-lg ${toneClasses[tone]}`}>
+        <Icon size={17} />
+      </div>
+      <p className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">{label}</p>
+      <strong className="mt-1 block break-words text-sm font-semibold text-slate-950 dark:text-white">{value}</strong>
+    </article>
+  );
+}
+
+function SnippetCard({ copied, icon: Icon, label, onCopy, snippet }) {
+  return (
+    <article className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-neutral-950">
+      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <Icon size={16} className="text-blue-600 dark:text-blue-300" />
+          <h3 className="text-sm font-semibold text-slate-950 dark:text-white">{label}</h3>
+        </div>
+        <button
+          type="button"
+          onClick={onCopy}
+          className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:bg-neutral-900 dark:text-slate-200 dark:hover:bg-white/10 sm:w-auto"
+        >
+          {copied ? <Check size={14} /> : <ClipboardCopy size={14} />}
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+      <pre className="max-h-64 overflow-auto rounded-lg bg-neutral-950 p-4 text-xs leading-6 text-slate-200">
+        <code>{snippet}</code>
+      </pre>
+    </article>
   );
 }

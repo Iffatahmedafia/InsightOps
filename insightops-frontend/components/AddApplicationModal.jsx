@@ -36,7 +36,7 @@ export function AddApplicationModal({ onClose, onSubmit }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/50 px-4 py-4 backdrop-blur-sm sm:items-center">
       <section className="w-full max-w-lg rounded-lg border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-neutral-900">
         <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-white/10">
           <div>
@@ -113,7 +113,7 @@ export function AddApplicationModal({ onClose, onSubmit }) {
             />
           </label>
 
-          <footer className="flex justify-end gap-3 pt-2">
+          <footer className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={onClose}

@@ -58,7 +58,9 @@ export function IncidentsTable({ incidents, onResolved }) {
                     </span>
                   </td>
                   <td className="max-w-sm px-4 py-3">
-                    <strong className="block text-slate-950 dark:text-white">{incident.title}</strong>
+                    <Link className="block font-semibold text-slate-950 hover:text-blue-600 dark:text-white dark:hover:text-blue-300" href={`/incidents/${incident.id}`}>
+                      {incident.title}
+                    </Link>
                     <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">{incident.type}</span>
                   </td>
                   <td className="px-4 py-3">
@@ -76,18 +78,26 @@ export function IncidentsTable({ incidents, onResolved }) {
                   </td>
                   <td className="px-4 py-3 text-xs text-slate-500 dark:text-slate-400">{evidence}</td>
                   <td className="px-4 py-3">
-                    {incident.status === "open" ? (
-                      <button
-                        type="button"
-                        onClick={() => handleResolve(incident.id)}
-                        className="inline-flex h-8 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/incidents/${incident.id}`}
+                        className="inline-flex h-8 items-center rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
                       >
-                        <CheckCircle2 size={14} />
-                        Resolve
-                      </button>
-                    ) : (
-                      <span className="text-xs text-slate-500 dark:text-slate-400">Resolved</span>
-                    )}
+                        Investigate
+                      </Link>
+                      {incident.status === "open" ? (
+                        <button
+                          type="button"
+                          onClick={() => handleResolve(incident.id)}
+                          className="inline-flex h-8 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/10"
+                        >
+                          <CheckCircle2 size={14} />
+                          Resolve
+                        </button>
+                      ) : (
+                        <span className="text-xs text-slate-500 dark:text-slate-400">Resolved</span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );

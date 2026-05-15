@@ -3,6 +3,7 @@ const express = require("express");
 const { prisma } = require("../config/prisma");
 const { requireUserAuth } = require("../middleware/requireUserAuth");
 const { openServiceDownIncident } = require("../services/incidentDetector");
+const { sendIncidentOpenedAlert } = require("../services/emailAlertService");
 
 const router = express.Router();
 router.use(requireUserAuth);
@@ -76,6 +77,9 @@ router.post("/run", async (req, res, next) => {
         if (incident) {
           incidents.push(incident);
           req.app.get("io").emit("incident:opened", { incident });
+          sendIncidentOpenedAlert(incident).catch((error) => {
+            console.error("Unable to send service down alert", error);
+          });
         }
       }
     }

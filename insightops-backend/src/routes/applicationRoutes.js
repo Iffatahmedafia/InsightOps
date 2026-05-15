@@ -16,6 +16,14 @@ const applicationSchema = z.object({
   healthUrl: z.string().url().optional(),
 });
 
+const alertSettingsSchema = z.object({
+  alertEmail: z.string().email().optional().or(z.literal("")),
+  alertsEnabled: z.boolean(),
+  incidentOpenedAlertsEnabled: z.boolean(),
+  serviceDownAlertsEnabled: z.boolean(),
+  incidentResolvedAlertsEnabled: z.boolean(),
+});
+
 router.post("/", validate(applicationSchema), async (req, res, next) => {
   try {
     const existingApplication = await prisma.application.findUnique({
@@ -76,6 +84,14 @@ router.get("/:id", async (req, res, next) => {
     const application = await prisma.application.findUnique({
       where: { id: req.params.id },
       include: {
+        logs: {
+          orderBy: { timestamp: "desc" },
+          take: 1,
+        },
+        metrics: {
+          orderBy: { timestamp: "desc" },
+          take: 1,
+        },
         healthChecks: {
           orderBy: { checkedAt: "desc" },
           take: 10,
@@ -114,6 +130,33 @@ router.post("/:id/api-key", async (req, res, next) => {
     });
 
     return res.json({ application: sanitizeApplication(updatedApplication), apiKey });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.patch("/:id/alerts", validate(alertSettingsSchema), async (req, res, next) => {
+  try {
+    const application = await prisma.application.findFirst({
+      where: { id: req.params.id, ownerUserId: req.user.id },
+    });
+
+    if (!application) {
+      return res.status(404).json({ error: { message: "Application not found" } });
+    }
+
+    const updatedApplication = await prisma.application.update({
+      where: { id: application.id },
+      data: {
+        alertEmail: req.body.alertEmail?.trim() || null,
+        alertsEnabled: req.body.alertsEnabled,
+        incidentOpenedAlertsEnabled: req.body.incidentOpenedAlertsEnabled,
+        serviceDownAlertsEnabled: req.body.serviceDownAlertsEnabled,
+        incidentResolvedAlertsEnabled: req.body.incidentResolvedAlertsEnabled,
+      },
+    });
+
+    return res.json({ application: sanitizeApplication(updatedApplication) });
   } catch (error) {
     return next(error);
   }
